@@ -1,0 +1,74 @@
+local Gun = script.Parent
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local remoteEvent = ReplicatedStorage:WaitForChild('FiringSMGEvent')
+local shooting = false
+local equipped = false
+local Player = game.Players.LocalPlayer
+local ClipSize = Gun:WaitForChild("Ammo").Value
+local Mouse = Player:GetMouse()
+local UserInput = game:GetService("UserInputService")
+local Ammo = Gun:WaitForChild("Ammo")
+local MouseConnection
+Gun.Equipped:Connect(function()
+	Player.PlayerGui.ScreenGui.AmmoLabel.Visible = true
+	UserInput.InputBegan:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.Keyboard then
+			if Input.KeyCode==Enum.KeyCode.R then
+				Gun.ReloadSound:Play()
+				for ReloadSecond = 1,5,1 do
+					Player.PlayerGui.ScreenGui.AmmoLabel.Text = "Reloading... "..ReloadSecond
+					wait(1)
+				end	
+				Ammo.Value=30
+			end
+			if Input.KeyCode == Enum.KeyCode.Z then
+				local Camera = game.Workspace.CurrentCamera
+				Camera.FieldOfView=30
+				Player.Character.Humanoid.WalkSpeed = 8
+			end
+		end
+	end)
+	UserInput.InputEnded:Connect(function(Input)
+		if Input.KeyCode == Enum.KeyCode.Z then
+			local Camera = game.Workspace.CurrentCamera
+			Camera.FieldOfView=70
+			Player.Character.Humanoid.WalkSpeed = 16
+		end
+	end)
+	equipped = true
+	Mouse.Icon = 'rbxassetid://117431027'
+	MouseConnection = Mouse.Button1Down:Connect(function()
+		shooting=true
+		while shooting and equipped do
+			if Ammo.Value>0 then
+				remoteEvent:FireServer(Player.TeamColor, Gun.Handle.Position, Gun.Handle.Orientation, Mouse.Hit.p)
+				Gun.FireSound:Play()
+				Mouse.Button1Up:Connect(function()
+					shooting = false
+				end)
+				wait(0.1)
+				Ammo.Value-=1
+			else
+				Gun.ReloadSound:Play()
+				Gun.ReloadSound:Play()
+				for ReloadSecond = 1,5,1 do
+					Player.PlayerGui.ScreenGui.AmmoLabel.Text = "Reloading... "..ReloadSecond
+					wait(1)
+				end	
+				Ammo.Value=30
+			end
+		end
+	end)
+end)
+
+
+
+
+Gun.Unequipped:Connect(function()
+	Player.PlayerGui.ScreenGui.AmmoLabel.Visible = false
+	equipped = false
+	MouseConnection:Disconnect()
+end)
+Ammo.Changed:Connect(function()
+	Player.PlayerGui.ScreenGui.AmmoLabel.Text = "Ammo: "..tostring(Ammo.Value).."/"..tostring(Gun.MaxAmmo.Value)
+end)
